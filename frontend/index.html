@@ -14,9 +14,11 @@
   <body>
     <script>
       let socket;
+      let circles = [];
 
       function setup() {
-        createCanvas(800, 600);
+        createCanvas(600, 600);
+        colorMode(HSB);
 
         socket = io("http://localhost:8080");
 
@@ -25,16 +27,41 @@
         });
 
         socket.on("disconnect", function () {
-          console.log("Disconnected to server");
+          console.log("Disconnected from server");
         });
 
         socket.on("midiEvent", function (data) {
           console.log("Midi data received:", data);
+
+          const hue = map(data.colorIdx, 0, 12, 0, 360);
+
+          console.log(hue);
+
+          circles.push({
+            x: width / 2,
+            y: height / 2,
+            radius: 0,
+            hue: hue,
+          });
         });
       }
 
       function draw() {
-        background(127);
+        // print(circles);
+        for (let i = circles.length - 40; i < circles.length; i++) {
+          if (i >= 0) {
+            let circle = circles[i];
+
+            circle.radius += 3;
+
+            fill(circle.hue, 50, 100);
+
+            ellipse(circle.x, circle.y, circle.radius * 2, circle.radius * 2);
+          }
+          // if (circle.radius > 500) {
+          //   circles.splice(i, 1);
+          // }
+        }
       }
     </script>
   </body>
