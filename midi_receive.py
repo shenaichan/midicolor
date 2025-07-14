@@ -4,20 +4,18 @@ import rtmidi
 
 from music21 import chord
 
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask import Flask
+from flask_socketio import SocketIO
 
 ################################################################
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "foobar"
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-@app.route('/')
-def index():
-    return render_template("index.html")
-
 ################################################################
+
 class ChordAnalyzer:
     def __init__(self):
         self.current_notes = set()
@@ -62,7 +60,12 @@ class ChordAnalyzer:
             chord = self.get_current_chord()
             if chord:
                 print(f"Current chord: {chord}")
+                color_idxs = [self._midi_to_color_idx(note) for note in self.current_notes]
+                print(color_idxs)
+                socketio.emit("chordEvent", {"notes": color_idxs, "name": chord})
             time.sleep(0.1)
+
+################################################################
 
 if __name__ == "__main__":
     analyzer = ChordAnalyzer()

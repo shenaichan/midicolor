@@ -14,11 +14,14 @@
   <body>
     <script>
       let socket;
-      let circles = [];
+      let chords = [];
 
       function setup() {
         createCanvas(600, 600);
         colorMode(HSB);
+        noStroke();
+        // textSize(16);
+        // textAlign(CENTER, CENTER);
 
         socket = io("http://localhost:8080");
 
@@ -30,37 +33,45 @@
           console.log("Disconnected from server");
         });
 
-        socket.on("midiEvent", function (data) {
-          console.log("Midi data received:", data);
-
-          const hue = map(data.colorIdx, 0, 12, 0, 360);
-
-          console.log(hue);
-
-          circles.push({
-            x: width / 2,
-            y: height / 2,
+        socket.on("chordEvent", function (data) {
+          const hues = [0, 17, 33, 45, 60, 88, 153, 193, 212, 234, 283, 319];
+          const currHues = data.notes.map((note) => hues[note]);
+          console.log(currHues);
+          chords.push({
             radius: 0,
-            hue: hue,
+            hues: currHues,
+            name: data.name,
           });
         });
       }
 
       function draw() {
-        // print(circles);
-        for (let i = circles.length - 40; i < circles.length; i++) {
+        // print(arcs);
+        for (let i = chords.length - 40; i < chords.length; i++) {
           if (i >= 0) {
-            let circle = circles[i];
+            let chord = chords[i];
 
-            circle.radius += 3;
+            chord.radius += 3;
 
-            fill(circle.hue, 50, 100);
-
-            ellipse(circle.x, circle.y, circle.radius * 2, circle.radius * 2);
+            const len = chord.hues.length;
+            const delta = (2 * PI) / len;
+            for (let j = 0; j < len; j++) {
+              fill(chord.hues[j], 50, 100);
+              arc(
+                width / 2,
+                height / 2,
+                chord.radius * 2,
+                chord.radius * 2,
+                j * delta,
+                (j + 1) * delta
+              );
+            }
+            // if (i === chords.length - 1) {
+            //   console.log(chord.name);
+            //   fill(0, 0, 100);
+            //   text(chord.name, width / 2, width / 2);
+            // }
           }
-          // if (circle.radius > 500) {
-          //   circles.splice(i, 1);
-          // }
         }
       }
     </script>
