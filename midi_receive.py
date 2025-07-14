@@ -4,12 +4,28 @@ import rtmidi
 
 from music21 import chord
 
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
+
+################################################################
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "foobar"
+
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+@app.route('/')
+def index():
+    return render_template("index.html")
+
 ################################################################
 class ChordAnalyzer:
     def __init__(self):
         self.current_notes = set()
         self.lock = threading.Lock()
         self.midi_in = rtmidi.MidiIn()
+    
+    def _midi_to_color_idx(self, note):
+        return (note * 7) % 12
     
     def midi_callback(self, data, _):
         msg, _ = data
@@ -20,6 +36,9 @@ class ChordAnalyzer:
             with self.lock:
                 if status == 144 and velocity > 0:
                     self.current_notes.add(note)
+                    color_idx = self._midi_to_color_idx(note)
+                    socketio.emit("midiEvent", {"colorIdx": color_idx})
+
                 elif status == 128 or (status == 144 and velocity == 0):
                     self.current_notes.discard(note)
     
@@ -47,4 +66,9 @@ class ChordAnalyzer:
 
 if __name__ == "__main__":
     analyzer = ChordAnalyzer()
-    analyzer.start_monitoring()
+
+    midi_thread = threading.Thread(target=analyzer.start_monitoring, daemon=True)
+    midi_thread.start()
+
+    socketio.run(app, host="localhost", port=8080, debug=True)
+

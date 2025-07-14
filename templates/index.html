@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIDI Visualizer!</title>
+    <script
+      src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+      integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.8/lib/p5.min.js"></script>
+  </head>
+  <body>
+    <script>
+      let socket;
+
+      function setup() {
+        createCanvas(800, 600);
+
+        socket = io("http://localhost:8080");
+
+        socket.on("connect", function () {
+          console.log("Connected to server");
+        });
+
+        socket.on("disconnect", function () {
+          console.log("Disconnected to server");
+        });
+
+        socket.on("midiEvent", function (data) {
+          console.log("Midi data received:", data);
+        });
+      }
+
+      function draw() {
+        background(127);
+      }
+    </script>
+  </body>
+</html>
