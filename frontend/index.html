@@ -26,21 +26,36 @@
       let chords = [];
 
       function setup() {
+        console.log("hello world");
+
         createCanvas(600, 600);
         colorMode(HSB);
-        noStroke();
+        strokeWeight(2);
         // textSize(16);
         // textAlign(CENTER, CENTER);
 
         socket = io("http://localhost:8080");
 
+        socket.on("disconnect", function (data) {
+          console.log("disconnected");
+        });
+        socket.on("connect", function (data) {
+          console.log("connected");
+        });
+
         socket.on("chordEvent", function (data) {
+          console.log("what");
           const hues = [0, 17, 33, 45, 60, 88, 153, 193, 212, 234, 283, 319];
-          const currHues = data.notes.map((note) => hues[note]);
-          console.log(currHues);
+
+          // console.log(hues);
+          const notes = data.notes.map(({ color, velocity }) => ({
+            hue: hues[color],
+            velocity,
+          }));
+          console.log({ notes });
           chords.push({
             radius: 0,
-            hues: currHues,
+            notes,
             name: data.name,
           });
         });
@@ -48,23 +63,32 @@
 
       function draw() {
         // print(arcs);
+        // background(0, 0, 255, 0.01);
         for (let i = chords.length - 100; i < chords.length; i++) {
           if (i >= 0) {
             let chord = chords[i];
 
-            chord.radius += 1;
+            chord.radius += deltaTime;
 
-            const len = chord.hues.length;
+            const len = chord.notes.length;
             const delta = (2 * PI) / len;
             for (let j = 0; j < len; j++) {
-              fill(chord.hues[j], 50, 100);
+              const note = chord.notes[j];
+
+              stroke(
+                note.hue,
+                50,
+                100,
+                map(note.velocity * 2, 0, 127, 0, 1, true)
+              );
+              fill(0, 0, 0, 0);
               arc(
                 width / 2,
                 height / 2,
-                chord.radius * 2,
-                chord.radius * 2,
-                j * delta,
-                (j + 1) * delta
+                chord.radius * 0.08,
+                chord.radius * 0.08,
+                j * delta + Math.log10(chord.radius * 0.0015), // map(i - chords.length + 100, 0, 99, 0, 2 * PI),
+                (j + 1) * delta + Math.log10(chord.radius * 0.0015) // map(i - chords.length + 100, 0, 99, 0, 2 * PI)
               );
             }
             // if (i === chords.length - 1) {

@@ -18,7 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 class ChordAnalyzer:
     def __init__(self):
-        self.current_notes = set()
+        self.current_notes = {}
         self.lock = threading.Lock()
         self.midi_in = rtmidi.MidiIn()
     
@@ -27,18 +27,16 @@ class ChordAnalyzer:
     
     def midi_callback(self, data, _):
         msg, _ = data
-        # print("MIDI message: ", msg)
+        print("MIDI message: ", msg)
 
         if len(msg) == 3:
             status, note, velocity = msg
             with self.lock:
                 if status == 144 and velocity > 0:
-                    self.current_notes.add(note)
-                    color_idx = self._midi_to_color_idx(note)
-                    socketio.emit("midiEvent", {"colorIdx": color_idx})
+                    self.current_notes[note] = velocity
 
                 elif status == 128 or (status == 144 and velocity == 0):
-                    self.current_notes.discard(note)
+                    self.current_notes.pop(note)
     
     def get_current_chord(self):
         with self.lock:
@@ -58,12 +56,18 @@ class ChordAnalyzer:
         
         while True:
             chord = self.get_current_chord()
-            if chord:
-                print(f"Current chord: {chord}")
-                color_idxs = [self._midi_to_color_idx(note) for note in self.current_notes]
-                print(color_idxs)
-                socketio.emit("chordEvent", {"notes": color_idxs, "name": chord})
-            time.sleep(0.1)
+            for key, value in list(self.current_notes.items()):
+                new_intensity = value * 0.75
+                if new_intensity > 0.001:
+                    self.current_notes[key] = new_intensity
+                else:
+                    self.current_notes.pop(key)
+            # if chord:
+            # print(f"Current chord: {chord}")
+            notes = [{"color": self._midi_to_color_idx(note), "velocity": velocity} for note, velocity in self.current_notes.items()]
+            # print(color_idxs)
+            socketio.emit("chordEvent", {"notes": notes, "name": chord})
+            time.sleep(0.05)
 
 ################################################################
 
